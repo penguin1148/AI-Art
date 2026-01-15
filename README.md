@@ -1,9 +1,5 @@
 # AI-Art: Hand Motion Drawing
 
-Transform your hand movements into colorful art! This interactive application uses your webcam to track hand motions and creates beautiful, fading trails as you move your hands through the air.
-
-## Features
-
 - **Real-time Hand Tracking**: Uses MediaPipe for accurate hand detection and tracking
 - **Colorful Trails**: Draw with rainbow colors that cycle automatically
 - **Fading Effect**: Trails gradually fade away after 3 seconds of no motion
@@ -92,16 +88,3 @@ app = HandDrawing(
 - Reduce the `trail_thickness` value
 - Decrease the `fade_duration`
 - Lower your webcam resolution
-
-## License
-
-MIT License
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## Acknowledgments
-
-- Built with [MediaPipe](https://google.github.io/mediapipe/)
-- Uses [OpenCV](https://opencv.org/) for video processing
