@@ -8,6 +8,7 @@ Transform your hand movements into colorful art! This interactive application us
 - **Colorful Trails**: Draw with rainbow colors that cycle automatically
 - **Fading Effect**: Trails gradually fade away after 3 seconds of no motion
 - **Multi-hand Support**: Track up to 2 hands simultaneously
+- **Hand Isolation Mode**: Option to show only your hand with background removed
 - **Interactive Controls**: Toggle drawing, clear canvas, and more
 
 ## Demo
@@ -47,6 +48,7 @@ python hand_drawing.py
 
 - **Point with your index finger** to draw
 - **SPACE** - Toggle drawing on/off
+- **H** - Toggle hand isolation mode (show only hand, hide background)
 - **C** - Clear all trails from the canvas
 - **Q** - Quit the application
 
@@ -58,6 +60,7 @@ python hand_drawing.py
 4. As you move your hand, colorful trails are created
 5. Trails automatically fade out over 3 seconds
 6. Each new trail segment gets a different rainbow color
+7. **Hand Isolation Mode**: Press 'H' to enable background removal - only your hand will be visible on screen using advanced masking techniques
 
 ## Customization
 
@@ -76,6 +79,7 @@ app = HandDrawing(
 - **Fading Algorithm**: Implements time-based alpha blending for smooth fade effects
 - **Performance**: Optimized with deque data structures and efficient point cleanup
 - **Color System**: HSV to BGR color conversion for vivid rainbow colors
+- **Hand Isolation**: Uses convex hull masking and morphological operations to isolate hand regions from background
 
 ## Troubleshooting
 
