@@ -81,6 +81,7 @@ class HandDrawing:
         # State
         self.drawing_enabled = True
         self.sound_enabled = True
+        self.fullscreen = True  # Start in fullscreen mode
 
         # Motion tracking
         self.last_hand_positions = {}  # Track last position per hand for speed calculation
@@ -340,12 +341,13 @@ class HandDrawing:
         instructions = [
             "SPACE - Toggle drawing",
             "S - Toggle sound",
+            "F - Toggle fullscreen",
             "C - Clear particles",
             "Spread hand wide for FLASH!",
             "Q - Quit"
         ]
 
-        y_offset = h - 140
+        y_offset = h - 165
         for instruction in instructions:
             cv2.putText(frame, instruction, (10, y_offset),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
@@ -366,6 +368,7 @@ class HandDrawing:
         print("- Spread your hand wide for a bright FLASH!")
         print("- SPACE: Toggle drawing on/off")
         print("- S: Toggle sound on/off")
+        print("- F: Toggle fullscreen on/off")
         print("- C: Clear all particles")
         print("- Q: Quit")
 
@@ -375,6 +378,12 @@ class HandDrawing:
             print("Error: Could not read frame")
             return
         h, w, _ = temp_frame.shape
+
+        # Create window and set to fullscreen
+        window_name = 'Hand Motion Fire Drawing'
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        if self.fullscreen:
+            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         while True:
             ret, frame = cap.read()
@@ -451,7 +460,7 @@ class HandDrawing:
             self.draw_ui(canvas)
 
             # Display
-            cv2.imshow('Hand Motion Fire Drawing', canvas)
+            cv2.imshow(window_name, canvas)
 
             # Handle keyboard input
             key = cv2.waitKey(1) & 0xFF
@@ -464,6 +473,13 @@ class HandDrawing:
             elif key == ord('s') or key == ord('S'):
                 self.sound_enabled = not self.sound_enabled
                 print(f"Sound {'enabled' if self.sound_enabled else 'disabled'}")
+            elif key == ord('f') or key == ord('F'):
+                self.fullscreen = not self.fullscreen
+                if self.fullscreen:
+                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                else:
+                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+                print(f"Fullscreen {'enabled' if self.fullscreen else 'disabled'}")
             elif key == ord('c'):
                 self.particles.clear()
                 print("Particles cleared")
