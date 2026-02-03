@@ -61,6 +61,7 @@ python hand_drawing.py
 - **Spread your hand wide** (open palm) to trigger FLASH effect
 - **SPACE** - Toggle drawing on/off
 - **S** - Toggle sound effects on/off
+- **F** - Toggle fullscreen mode on/off
 - **C** - Clear all particles from the canvas
 - **Q** - Quit the application
 
