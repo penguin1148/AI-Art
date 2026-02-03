@@ -122,9 +122,8 @@ class HandDrawing:
         # Normalize and convert to 16-bit
         audio = audio / np.max(np.abs(audio))
         audio_int = (audio * 32767).astype(np.int16)
-
-        # Create pygame Sound from numpy array
-        sound = pygame.sndarray.make_sound(audio_int)
+        stereo_audio = np.column_stack((audio_int, audio_int))
+        sound = pygame.sndarray.make_sound(stereo_audio)
         return sound
 
     def generate_fire_color(self, brightness_multiplier=1.0):
@@ -490,23 +489,17 @@ class HandDrawing:
                 self.drawing_enabled = not self.drawing_enabled
                 print(f"Drawing {'enabled' if self.drawing_enabled else 'disabled'}")
             elif key == ord('s') or key == ord('S'):
-                self.sound_enabled = not self.sound_enabled
-                print(f"Sound {'enabled' if self.sound_enabled else 'disabled'}")
-            elif key == ord('f') or key == ord('F'):
-                self.fullscreen = not self.fullscreen
-                if self.fullscreen:
-                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                    # Update screen dimensions
-                    screen_info = cv2.getWindowImageRect(window_name)
-                    if screen_info[2] > 0 and screen_info[3] > 0:
-                        screen_w, screen_h = screen_info[2], screen_info[3]
-                    else:
-                        screen_w, screen_h = 1920, 1080
+                if not self.sound_enabled:
+                    try:
+                        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+                        self.sound = self.generate_fire_sound()
+                        self.sound_channel = None
+                        self.sound_enabled = True
+                    except Exception as e:
+                        print(f"Audio init failed: {e}")
+                        self.sound_enabled = False
                 else:
-                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-                    screen_w, screen_h = cam_w, cam_h
-                    cv2.resizeWindow(window_name, screen_w, screen_h)
-                print(f"Fullscreen {'enabled' if self.fullscreen else 'disabled'} - Resolution: {screen_w}x{screen_h}")
+                    self.sound_enabled = False
             elif key == ord('c'):
                 self.particles.clear()
                 print("Particles cleared")
