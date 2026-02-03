@@ -377,13 +377,28 @@ class HandDrawing:
         if not ret:
             print("Error: Could not read frame")
             return
-        h, w, _ = temp_frame.shape
+        cam_h, cam_w, _ = temp_frame.shape
 
         # Create window and set to fullscreen
         window_name = 'Hand Motion Fire Drawing'
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+
+        # Get screen dimensions
         if self.fullscreen:
             cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            # Get actual screen size after fullscreen is set
+            screen_info = cv2.getWindowImageRect(window_name)
+            if screen_info[2] > 0 and screen_info[3] > 0:
+                screen_w, screen_h = screen_info[2], screen_info[3]
+            else:
+                # Fallback to common screen size
+                screen_w, screen_h = 1920, 1080
+        else:
+            screen_w, screen_h = cam_w, cam_h
+            cv2.resizeWindow(window_name, screen_w, screen_h)
+
+        print(f"Display resolution: {screen_w}x{screen_h}")
+        print(f"Camera resolution: {cam_w}x{cam_h}")
 
         while True:
             ret, frame = cap.read()
@@ -400,8 +415,8 @@ class HandDrawing:
             # Process hands
             results = self.hands.process(rgb_frame)
 
-            # Create black canvas for particles
-            canvas = np.zeros((h, w, 3), dtype=np.uint8)
+            # Create black canvas for particles (use screen dimensions)
+            canvas = np.zeros((screen_h, screen_w, 3), dtype=np.uint8)
 
             # Decay flash intensity
             self.flash_intensity *= 0.8
@@ -410,8 +425,12 @@ class HandDrawing:
             max_speed = 0  # Track maximum speed across all hands
             if results.multi_hand_landmarks:
                 for hand_idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
-                    # Get index finger tip position
-                    x, y = self.process_hand_landmarks(hand_landmarks, frame.shape)
+                    # Get index finger tip position (in camera coordinates)
+                    cam_x, cam_y = self.process_hand_landmarks(hand_landmarks, frame.shape)
+
+                    # Scale to screen coordinates
+                    x = int(cam_x * screen_w / cam_w)
+                    y = int(cam_y * screen_h / cam_h)
 
                     # Calculate movement speed
                     speed = self.calculate_speed((x, y), hand_idx)
@@ -450,7 +469,7 @@ class HandDrawing:
             # Apply flash effect to canvas if active
             if self.flash_intensity > 0.1:
                 # Add white overlay for flash
-                flash_overlay = np.ones((h, w, 3), dtype=np.uint8) * int(50 * self.flash_intensity)
+                flash_overlay = np.ones((screen_h, screen_w, 3), dtype=np.uint8) * int(50 * self.flash_intensity)
                 canvas = cv2.add(canvas, flash_overlay)
 
             # Update and draw all particles on the black canvas
@@ -477,9 +496,17 @@ class HandDrawing:
                 self.fullscreen = not self.fullscreen
                 if self.fullscreen:
                     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    # Update screen dimensions
+                    screen_info = cv2.getWindowImageRect(window_name)
+                    if screen_info[2] > 0 and screen_info[3] > 0:
+                        screen_w, screen_h = screen_info[2], screen_info[3]
+                    else:
+                        screen_w, screen_h = 1920, 1080
                 else:
                     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-                print(f"Fullscreen {'enabled' if self.fullscreen else 'disabled'}")
+                    screen_w, screen_h = cam_w, cam_h
+                    cv2.resizeWindow(window_name, screen_w, screen_h)
+                print(f"Fullscreen {'enabled' if self.fullscreen else 'disabled'} - Resolution: {screen_w}x{screen_h}")
             elif key == ord('c'):
                 self.particles.clear()
                 print("Particles cleared")
