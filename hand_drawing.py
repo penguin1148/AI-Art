@@ -86,9 +86,17 @@ class HandDrawing:
         # Motion tracking
         self.last_hand_positions = {}  # Track last position per hand for speed calculation
         self.hand_speeds = {}  # Current speed per hand
+        self.hand_vertical_velocities = {}  # Track vertical velocity for eruption detection
 
         # Flash effect
         self.flash_intensity = 0.0  # Current flash brightness (0-1)
+
+        # Eruption effect
+        self.eruption_active = False
+        self.eruption_time = 0
+        self.eruption_duration = 1.5  # Duration of eruption effect in seconds
+        self.last_eruption_trigger = 0  # Timestamp of last eruption
+        self.eruption_cooldown = 2.0  # Cooldown between eruptions in seconds
 
         # Initialize audio
         try:
@@ -175,6 +183,41 @@ class HandDrawing:
 
             # Random lifetime variation
             lifetime = self.fade_duration * random.uniform(0.7, 1.3)
+
+            particle = Particle(x, y, vx, vy, color, size, lifetime)
+            self.particles.append(particle)
+
+    def spawn_eruption(self, screen_w, screen_h, intensity=1.0):
+        """
+        Spawn eruption particles from the bottom of the screen.
+
+        Args:
+            screen_w: Screen width
+            screen_h: Screen height
+            intensity: Eruption intensity (0-1)
+        """
+        # Number of particles based on intensity and screen width
+        particle_count = int(screen_w / 3 * intensity)
+
+        for _ in range(particle_count):
+            # Random x position along the bottom
+            x = random.uniform(0, screen_w)
+            # Start from the bottom
+            y = screen_h
+
+            # Strong upward velocity with some horizontal spread
+            vx = random.uniform(-3, 3)
+            vy = random.uniform(-25, -15) * intensity  # Strong upward motion
+
+            # Bright fire colors
+            brightness = 1.8 * intensity
+            color = self.generate_fire_color(brightness)
+
+            # Larger particles for eruption
+            size = random.uniform(5, 15) * intensity
+
+            # Longer lifetime for eruption particles
+            lifetime = self.fade_duration * random.uniform(1.2, 1.8)
 
             particle = Particle(x, y, vx, vy, color, size, lifetime)
             self.particles.append(particle)
@@ -287,6 +330,56 @@ class HandDrawing:
             return distance
         return 0
 
+    def calculate_vertical_velocity(self, current_pos, hand_id):
+        """
+        Calculate vertical velocity of the hand (negative = upward).
+
+        Args:
+            current_pos: Current (x, y) position
+            hand_id: Hand identifier
+
+        Returns:
+            Vertical velocity in pixels per frame (negative = upward)
+        """
+        if hand_id in self.last_hand_positions:
+            last_pos = self.last_hand_positions[hand_id]
+            # Negative means moving up (y decreases)
+            velocity = current_pos[1] - last_pos[1]
+            return velocity
+        return 0
+
+    def detect_dual_hand_lift(self, hand_velocities):
+        """
+        Detect if both hands are lifting up simultaneously.
+
+        Args:
+            hand_velocities: Dictionary of hand_id -> vertical_velocity
+
+        Returns:
+            True if both hands are lifting rapidly
+        """
+        # Need exactly 2 hands
+        if len(hand_velocities) != 2:
+            return False
+
+        # Check cooldown
+        current_time = time.time()
+        if current_time - self.last_eruption_trigger < self.eruption_cooldown:
+            return False
+
+        # Both hands should have significant upward velocity (negative values)
+        # Threshold: -20 pixels per frame (moving upward)
+        upward_threshold = -20
+        velocities = list(hand_velocities.values())
+
+        both_moving_up = all(v < upward_threshold for v in velocities)
+
+        if both_moving_up:
+            self.last_eruption_trigger = current_time
+            return True
+
+        return False
+
     def play_sound_with_speed(self, speed):
         """
         Play drawing sound with volume based on speed.
@@ -336,6 +429,12 @@ class HandDrawing:
             cv2.putText(frame, flash_text, (w - 150, 50), cv2.FONT_HERSHEY_SIMPLEX,
                        1.0, (255, 255, 255), 3)
 
+        # Eruption indicator
+        if self.eruption_active:
+            eruption_text = "ERUPTION!"
+            cv2.putText(frame, eruption_text, (w // 2 - 100, h - 50), cv2.FONT_HERSHEY_SIMPLEX,
+                       1.5, (0, 150, 255), 4)
+
         # Instructions
         instructions = [
             "SPACE - Toggle drawing",
@@ -343,10 +442,11 @@ class HandDrawing:
             "F - Toggle fullscreen",
             "C - Clear particles",
             "Spread hand wide for FLASH!",
+            "Lift both hands UP for ERUPTION!",
             "Q - Quit"
         ]
 
-        y_offset = h - 165
+        y_offset = h - 190
         for instruction in instructions:
             cv2.putText(frame, instruction, (10, y_offset),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
@@ -365,6 +465,7 @@ class HandDrawing:
         print("- Point with your index finger to create fire particles")
         print("- Move faster for louder sound effects")
         print("- Spread your hand wide for a bright FLASH!")
+        print("- Lift BOTH hands UP suddenly for ERUPTION from bottom!")
         print("- SPACE: Toggle drawing on/off")
         print("- S: Toggle sound on/off")
         print("- F: Toggle fullscreen on/off")
@@ -422,6 +523,8 @@ class HandDrawing:
 
             # Track hands and spawn particles
             max_speed = 0  # Track maximum speed across all hands
+            current_hand_velocities = {}  # Track vertical velocities for eruption detection
+
             if results.multi_hand_landmarks:
                 for hand_idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
                     # Get index finger tip position (in camera coordinates)
@@ -434,6 +537,10 @@ class HandDrawing:
                     # Calculate movement speed
                     speed = self.calculate_speed((x, y), hand_idx)
                     max_speed = max(max_speed, speed)
+
+                    # Calculate vertical velocity for eruption detection
+                    v_velocity = self.calculate_vertical_velocity((x, y), hand_idx)
+                    current_hand_velocities[hand_idx] = v_velocity
 
                     # Update last position
                     self.last_hand_positions[hand_idx] = (x, y)
@@ -461,9 +568,40 @@ class HandDrawing:
                             # Normal mode
                             self.spawn_particles(x, y)
 
+            # Detect dual hand lift gesture
+            if self.detect_dual_hand_lift(current_hand_velocities):
+                self.eruption_active = True
+                self.eruption_time = time.time()
+                print("ERUPTION TRIGGERED!")
+
             # Play sound based on maximum speed
             if max_speed > 0:
                 self.play_sound_with_speed(max_speed)
+
+            # Manage eruption effect
+            if self.eruption_active:
+                elapsed = time.time() - self.eruption_time
+                if elapsed < self.eruption_duration:
+                    # Calculate intensity (starts high, fades out)
+                    intensity = 1.0 - (elapsed / self.eruption_duration)
+                    intensity = max(0.0, intensity)
+
+                    # Spawn eruption particles from bottom
+                    self.spawn_eruption(screen_w, screen_h, intensity)
+
+                    # Add orange glow to bottom of screen
+                    glow_height = int(screen_h * 0.3 * intensity)
+                    if glow_height > 0:
+                        glow_overlay = np.zeros((screen_h, screen_w, 3), dtype=np.uint8)
+                        # Orange glow (BGR format)
+                        for i in range(glow_height):
+                            alpha = (1.0 - i / glow_height) * intensity * 0.5
+                            glow_color = int(80 * alpha), int(120 * alpha), int(200 * alpha)
+                            glow_overlay[screen_h - 1 - i, :] = glow_color
+                        canvas = cv2.add(canvas, glow_overlay)
+                else:
+                    # Eruption finished
+                    self.eruption_active = False
 
             # Apply flash effect to canvas if active
             if self.flash_intensity > 0.1:

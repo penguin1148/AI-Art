@@ -12,6 +12,7 @@ Transform your hand movements into stunning fire particles! This interactive app
 - **Invisible Hand**: Only the particle effects are visible - your hand stays hidden
 - **Speed-Based Sound Effects**: Dynamic audio that increases in volume as you move faster
 - **Flash Effect**: Spread your hand wide to trigger bright particle bursts with enhanced effects
+- **Eruption Effect**: Lift both hands up suddenly to trigger a massive fire eruption from the bottom
 - **Interactive Controls**: Toggle drawing, sound, clear particles, and more
 
 ## Demo
@@ -22,6 +23,7 @@ Point with your index finger to create explosive fire particle effects. Particle
 - Move your hand **slowly** for quiet, gentle particles
 - Move your hand **quickly** for loud whooshing sounds and intense effects
 - **Spread your hand wide** (thumb to pinky) to trigger a FLASH - brighter, bigger, more particles!
+- **Lift both hands up suddenly** to trigger an ERUPTION - a massive wave of fire rises from the bottom of the screen!
 
 ## Installation
 
@@ -56,9 +58,13 @@ python hand_drawing.py
 
 ### Controls
 
+#### Gestures:
 - **Point with your index finger** to create fire particles
 - **Move faster** to increase sound volume
 - **Spread your hand wide** (open palm) to trigger FLASH effect
+- **Lift both hands up suddenly** to trigger ERUPTION from bottom
+
+#### Keyboard:
 - **SPACE** - Toggle drawing on/off
 - **S** - Toggle sound effects on/off
 - **F** - Toggle fullscreen mode on/off
@@ -86,8 +92,15 @@ python hand_drawing.py
    - Larger particle sizes
    - White screen flash overlay
    - "FLASH!" indicator appears
-10. Particles automatically fade and shrink over 2 seconds
-11. Your hand is completely invisible - only particles are shown on a black background
+10. **Eruption effect**: When both hands lift up rapidly (>20 pixels/frame upward):
+   - Massive particle eruption from bottom of screen
+   - Intensity fades over 1.5 seconds
+   - Bright orange glow at bottom
+   - Hundreds of large, bright particles
+   - "ERUPTION!" indicator appears
+   - 2-second cooldown between eruptions
+11. Particles automatically fade and shrink over 2 seconds
+12. Your hand is completely invisible - only particles are shown on a black background
 
 ## Customization
 
@@ -128,6 +141,15 @@ You can also modify particle physics in the `Particle.update()` method:
   - Exponential decay (0.8x per frame) for smooth fade
   - White overlay proportional to flash intensity
   - Enhanced particle parameters during flash
+- **Eruption Effect**:
+  - Dual hand vertical velocity tracking
+  - Requires both hands moving upward at >20 pixels/frame
+  - Particle count scales with screen width (screen_w/3)
+  - Strong upward velocity (-25 to -15 pixels/frame)
+  - Linear intensity fade over 1.5 second duration
+  - Orange glow overlay at bottom (30% screen height)
+  - 2-second cooldown prevents rapid re-triggering
+  - Particles spawn across entire bottom edge
 
 ## Troubleshooting
 
@@ -161,6 +183,14 @@ You can also modify particle physics in the `Particle.update()` method:
 - Make sure all fingers are visible to the camera
 - The flash threshold is 180 pixels - try moving closer to the camera for a wider hand spread
 - Watch for the "FLASH!" indicator in the top-right when it triggers
+
+**Eruption not triggering:**
+- You need BOTH hands visible to the camera
+- Lift both hands UP quickly at the same time (fast upward motion)
+- Move your hands at least 20 pixels upward per frame
+- There's a 2-second cooldown between eruptions
+- Watch for the "ERUPTION!" indicator at the bottom-center when it triggers
+- Make sure both hands are being tracked (good lighting helps)
 
 ## License
 
