@@ -2,21 +2,6 @@ A motion-tracking art experience that allows the user to point their finger in f
 
 Instructions:
 
-install python and git 
-
-git clone https://github.com/penguin1148/AI-Art.git
-
-download zip and extract
-
-carefully navigate to project folder
-
-pip install numpy
-
-pip install matplotlib
-
-pip install scipy
-
-python AI-Art.py
 
 
 
